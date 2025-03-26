@@ -1,6 +1,8 @@
 # Complete AWS Transit Gateway example
 
-This example configures a multi-account multi-region hub-spoke transit gateway setup.
+This example showcases the architecutre presented in the AWS Architecture Blog post [Field Notes: Working with Route Tables in AWS Transit Gateway](https://aws.amazon.com/blogs/architecture/field-notes-working-with-route-tables-in-aws-transit-gateway/).
+
+![architecture-diagram](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2020/08/07/How-different-AWS-accounts-are-connected-via-AWS-Transit-Gateway.png)
 
 ## Usage
 
@@ -36,7 +38,7 @@ Note that this example may create resources which cost money. Run `terraform des
 |------|--------|---------|
 | <a name="module_s3_bucket"></a> [s3\_bucket](#module\_s3\_bucket) | terraform-aws-modules/s3-bucket/aws | ~> 3.0 |
 | <a name="module_transit_gateway"></a> [transit\_gateway](#module\_transit\_gateway) | ../../ | n/a |
-| <a name="module_transit_gateway_route_table"></a> [transit\_gateway\_route\_table](#module\_transit\_gateway\_route\_table) | ../../modules/route-table | n/a |
+| <a name="module_transit_gateway_peer"></a> [transit\_gateway\_peer](#module\_transit\_gateway\_peer) | ../../ | n/a |
 | <a name="module_vpc1"></a> [vpc1](#module\_vpc1) | terraform-aws-modules/vpc/aws | ~> 5.0 |
 | <a name="module_vpc2"></a> [vpc2](#module\_vpc2) | terraform-aws-modules/vpc/aws | ~> 5.0 |
 
