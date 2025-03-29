@@ -11,44 +11,32 @@ locals {
 
   transit_gateway_id = try(aws_ec2_transit_gateway.this[0].id, var.tgw_id)
 
-  vpc_attachments = { for k, v in var.vpc_attachments : k => {
-    for k1, v1 in v : k1 => v1 if v1 != null # Remove nulls from optional()
-  }}
+  vpc_attachments = var.vpc_attachments
+  # vpc_attachments = { for k, v in var.vpc_attachments : k => {
+  #   for k1, v1 in v : k1 => v1 if v1 != null # Remove nulls from optional() so we can merge with defaults
+  # }}
 
   vpc_routes = flatten([
     for k, v in local.vpc_attachments : [
       for k1, v1 in v.vpc_routes : [
         for i, rtb_id in v1.route_table_ids : concat([
-          for cidr in v1.destination_cidr_blocks : {
-            name = "${k}-${k1}-${cidr}-${i}" # <attachment>-<route>-<cidr>-<rtb-index>
-            route_table_id = rtb_id
+          for cidr in try(v1.destination_cidr_blocks, []) : {
+            name                   = "${k}-${k1}-${cidr}-${i}" # <attachment>-<route>-<cidr>-<rtb-index>
+            route_table_id         = rtb_id
             destination_cidr_block = cidr
-            create = try(v.create_vpc_routes, var.vpc_attachment_defaults.create_vpc_routes, true)
+            create                 = try(v.create_vpc_routes, true)
           }
-        ], [
-          for cidr in v1.destination_ipv6_cidr_blocks : {
-            name = "${k}-${k1}-${cidr}-${i}"
-            route_table_id = rtb_id
+          ], [
+          for cidr in try(v1.destination_ipv6_cidr_blocks, []) : {
+            name                        = "${k}-${k1}-${cidr}-${i}"
+            route_table_id              = rtb_id
             destination_ipv6_cidr_block = cidr
-            create = try(v.create_vpc_routes, var.vpc_attachment_defaults.create_vpc_routes, true)
+            create                      = try(v.create_vpc_routes, true)
           }
         ])
-      ] 
+      ]
     ]
   ])
-  
-  # vpc_routes_list = flatten([
-  #   for k, v in local.vpc_attachments : [ 
-  #     [ for route in setproduct(v.vpc_routes_route_table_ids, v.vpc_routes_destination_cidr_blocks) : {
-  #       route_table_id = route[0]
-  #       destination_cidr_block = route[1]
-  #     }],
-  #     [ for route in setproduct(v.vpc_routes_route_table_ids, v.vpc_routes_destination_ipv6_cidr_blocks) : {
-  #       route_table_id = route[0]
-  #       destination_ipv6_cidr_block = route[1]
-  #     }],
-  #   ]
-  # ])
 
   attachments = merge([
     { for k, v in aws_ec2_transit_gateway_vpc_attachment.this : k => { id = v.id } },
@@ -59,8 +47,6 @@ locals {
     { for k, v in data.aws_ec2_transit_gateway_peering_attachment.this : k => { id = v.id } },
     { for k, v in var.attachments : k => { id = v.attachment_id } },
   ]...)
-  # attachments = merge(aws_ec2_transit_gateway_vpc_attachment.this, aws_ec2_transit_gateway_vpc_attachment_accepter.this, aws_ec2_transit_gateway_peering_attachment.this)
-
 }
 
 resource "aws_ec2_transit_gateway" "this" {
@@ -87,7 +73,7 @@ resource "aws_ec2_transit_gateway" "this" {
 }
 
 resource "aws_ec2_tag" "this" {
-  for_each = { for k, v in local.tgw_tags : k => v if var.create && var.default_route_table_association }
+  for_each = { for k, v in local.tgw_tags : k => v if var.create && var.create_tgw && var.default_route_table_association }
 
   resource_id = aws_ec2_transit_gateway.this[0].association_default_route_table_id
   key         = each.key
@@ -99,25 +85,25 @@ resource "aws_ec2_tag" "this" {
 ################################################################################
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
-  for_each = { for k, v in local.vpc_attachments : k => v if var.create && v.create_attachment && !v.accept_shared_attachment }
- 
-  transit_gateway_id                              = local.transit_gateway_id
+  for_each = { for k, v in local.vpc_attachments : k => v if var.create && try(v.create_attachment, true) && !try(v.accept_shared_attachment, false) }
 
-  vpc_id                                          = each.value.vpc_id
-  subnet_ids                                      = each.value.subnet_ids
+  transit_gateway_id = local.transit_gateway_id
 
-  dns_support                                     = try(each.value.dns_support, var.vpc_attachment_defaults.dns_support, true) ? "enable" : "disable"
-  ipv6_support                                    = try(each.value.ipv6_support, var.vpc_attachment_defaults.ipv6_support, false) ? "enable" : "disable"
-  appliance_mode_support                          = try(each.value.appliance_mode_support, var.vpc_attachment_defaults.appliance_mode_support, false) ? "enable" : "disable"
-  security_group_referencing_support              = try(each.value.security_group_referencing_support, var.vpc_attachment_defaults.security_group_referencing_support, false)  ? "enable" : "disable"
+  vpc_id     = each.value.vpc_id
+  subnet_ids = each.value.subnet_ids
 
-  transit_gateway_default_route_table_association = try(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association, null)
-  transit_gateway_default_route_table_propagation = try(each.value.transit_gateway_default_route_table_propagation, var.vpc_attachment_defaults.transit_gateway_default_route_table_propagation, null)
+  dns_support                        = coalesce(each.value.dns_support, var.vpc_attachment_defaults.dns_support, true) ? "enable" : "disable"
+  ipv6_support                       = coalesce(each.value.ipv6_support, var.vpc_attachment_defaults.ipv6_support, false) ? "enable" : "disable"
+  appliance_mode_support             = coalesce(each.value.appliance_mode_support, var.vpc_attachment_defaults.appliance_mode_support, false) ? "enable" : "disable"
+  security_group_referencing_support = coalesce(each.value.security_group_referencing_support, var.vpc_attachment_defaults.security_group_referencing_support, false) ? "enable" : "disable"
+
+  transit_gateway_default_route_table_association = try(coalesce(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association), null)
+  transit_gateway_default_route_table_propagation = try(coalesce(each.value.transit_gateway_default_route_table_propagation, var.vpc_attachment_defaults.transit_gateway_default_route_table_propagation), null)
 
   tags = merge(
     var.tags,
     { Name = "${var.name}-${each.key}" },
-    each.value.tags,
+    try(each.value.tags, {}),
   )
 }
 
@@ -125,16 +111,17 @@ resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "this" {
   for_each = { for k, v in local.vpc_attachments : k => v if var.create && v.accept_shared_attachment }
 
   transit_gateway_attachment_id                   = each.value.vpc_attachment_id
-  transit_gateway_default_route_table_association = try(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association, null)
-  transit_gateway_default_route_table_propagation = try(each.value.transit_gateway_default_route_table_propagation, var.vpc_attachment_defaults.transit_gateway_default_route_table_propagation, null)
+  transit_gateway_default_route_table_association = try(coalesce(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association), null)
+  transit_gateway_default_route_table_propagation = try(coalesce(each.value.transit_gateway_default_route_table_propagation, var.vpc_attachment_defaults.transit_gateway_default_route_table_propagation), null)
 
   tags = merge(
     var.tags,
     { Name = "${var.name}-${each.key}" },
-    each.value.tags,
+    try(each.value.tags, {}),
   )
 }
 
+# Data source for existing attachments
 data "aws_ec2_transit_gateway_vpc_attachment" "this" {
   for_each = { for k, v in local.vpc_attachments : k => v if var.create && !v.create_attachment && !v.accept_shared_attachment }
 
@@ -166,7 +153,7 @@ resource "aws_ec2_transit_gateway_peering_attachment" "this" {
   tags = merge(
     var.tags,
     { Name = "${var.name}-${each.key}" },
-    each.value.tags,
+    try(each.value.tags, {}),
   )
 }
 
@@ -178,10 +165,11 @@ resource "aws_ec2_transit_gateway_peering_attachment_accepter" "this" {
   tags = merge(
     var.tags,
     { Name = "${var.name}-${each.key}" },
-    each.value.tags,
+    try(each.value.tags, {}),
   )
 }
 
+# Data source for existing peering attachments
 data "aws_ec2_transit_gateway_peering_attachment" "this" {
   for_each = { for k, v in var.peering_attachments : k => v if var.create && !v.create_attachment && !v.accept_peering_attachment }
 
@@ -207,8 +195,8 @@ module "management_transit_gateway_route_table" {
   static_routes = { for route in try(each.value.static_routes, []) : route.destination_cidr_block => {
     destination_cidr_block        = route.destination_cidr_block
     blackhole                     = try(route.blackhole, null)
-    transit_gateway_attachment_id = try(local.attachments[route.attachment].id, route.transit_gateway_attachment_id)
-  }}
+    transit_gateway_attachment_id = try(local.attachments[route.attachment].id, route.transit_gateway_attachment_id, null)
+  } }
 }
 
 ################################################################################

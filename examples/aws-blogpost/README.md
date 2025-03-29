@@ -1,6 +1,6 @@
 # Complete AWS Transit Gateway example
 
-This example showcases the architecutre presented in the AWS Architecture Blog post [Field Notes: Working with Route Tables in AWS Transit Gateway](https://aws.amazon.com/blogs/architecture/field-notes-working-with-route-tables-in-aws-transit-gateway/).
+This example showcases the architecture presented in the AWS Architecture Blog post [Field Notes: Working with Route Tables in AWS Transit Gateway](https://aws.amazon.com/blogs/architecture/field-notes-working-with-route-tables-in-aws-transit-gateway/).
 
 ![architecture-diagram](https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2020/08/07/How-different-AWS-accounts-are-connected-via-AWS-Transit-Gateway.png)
 
@@ -30,26 +30,30 @@ Note that this example may create resources which cost money. Run `terraform des
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.78 |
-| <a name="provider_random"></a> [random](#provider\_random) | >= 3.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_s3_bucket"></a> [s3\_bucket](#module\_s3\_bucket) | terraform-aws-modules/s3-bucket/aws | ~> 3.0 |
+| <a name="module_dev_tgw_attachment"></a> [dev\_tgw\_attachment](#module\_dev\_tgw\_attachment) | ../../ | n/a |
+| <a name="module_dev_vpc"></a> [dev\_vpc](#module\_dev\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_network_vpc"></a> [network\_vpc](#module\_network\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_pre_prod_tgw_attachment"></a> [pre\_prod\_tgw\_attachment](#module\_pre\_prod\_tgw\_attachment) | ../../ | n/a |
+| <a name="module_pre_prod_vpc"></a> [pre\_prod\_vpc](#module\_pre\_prod\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_prod_tgw_attachment"></a> [prod\_tgw\_attachment](#module\_prod\_tgw\_attachment) | ../../ | n/a |
+| <a name="module_prod_vpc"></a> [prod\_vpc](#module\_prod\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_staging_tgw_attachment"></a> [staging\_tgw\_attachment](#module\_staging\_tgw\_attachment) | ../../ | n/a |
+| <a name="module_staging_vpc"></a> [staging\_vpc](#module\_staging\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
 | <a name="module_transit_gateway"></a> [transit\_gateway](#module\_transit\_gateway) | ../../ | n/a |
-| <a name="module_transit_gateway_peer"></a> [transit\_gateway\_peer](#module\_transit\_gateway\_peer) | ../../ | n/a |
-| <a name="module_vpc1"></a> [vpc1](#module\_vpc1) | terraform-aws-modules/vpc/aws | ~> 5.0 |
-| <a name="module_vpc2"></a> [vpc2](#module\_vpc2) | terraform-aws-modules/vpc/aws | ~> 5.0 |
 
 ## Resources
 
 | Name | Type |
 |------|------|
-| [random_pet.this](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/pet) | resource |
+| [aws_customer_gateway.vpn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/customer_gateway) | resource |
+| [aws_vpn_connection.attachment_4](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpn_connection) | resource |
 | [aws_availability_zones.available](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
-| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
-| [aws_iam_policy_document.flow_log_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_organizations_organization.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/organizations_organization) | data source |
 
 ## Inputs
 
