@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias  = "peer"
+  alias  = "peer-region"
   region = local.peer_region
 }
 
@@ -83,8 +83,8 @@ module "transit_gateway" {
   peering_attachments = {
     west-peer = {
       peer_region             = local.peer_region
-      peer_account_id         = module.transit_gateway_peer.owner_id
-      peer_transit_gateway_id = module.transit_gateway_peer.id
+      peer_account_id         = module.transit_gateway_peer_region.owner_id
+      peer_transit_gateway_id = module.transit_gateway_peer_region.id
     }
   }
 
@@ -94,7 +94,7 @@ module "transit_gateway" {
       propagations = ["vpc2", "vpc3"]
 
       static_routes = [
-        { destination_cidr_block = "10.0.0.8/0", attachment = "west-peer" },
+        { destination_cidr_block = "10.0.0.0/8", attachment = "west-peer" },
         { destination_cidr_block = "0.0.0.0/0", blackhole = true },
       ]
     }
@@ -111,11 +111,11 @@ module "transit_gateway" {
   tags = local.tags
 }
 
-module "transit_gateway_peer" {
+module "transit_gateway_peer_region" {
   source = "../../"
 
   providers = {
-    aws = aws.peer
+    aws = aws.peer-region
   }
 
   name        = local.name
@@ -141,19 +141,32 @@ module "transit_gateway_peer" {
         }
       }
     }
+
+    vpc5 = {
+      accept_shared_attachment = true
+      vpc_attachment_id        = module.transit_gateway_attachment_peer_account.vpc_attachments["vpc5"].id
+    }
   }
 
   peering_attachments = {
     east-peer = {
-      accept_peering_attachment     = true
-      transit_gateway_attachment_id = module.transit_gateway.peering_attachments["west-peer"].id
+      accept_peering_attachment = true
+      peering_attachment_id     = module.transit_gateway.peering_attachments["west-peer"].id
     }
   }
 
   route_tables = {
+    hub = {
+      associations = ["east-peer"]
+      propagations = ["vpc4", "vpc5"]
+
+      static_routes = [
+        { destination_cidr_block = "0.0.0.0/0", blackhole = true },
+      ]
+    }
     spoke = {
-      associations = ["vpc4", "east-peer"]
-      propagations = ["vpc4"]
+      associations = ["vpc4", "vpc5"]
+      propagations = []
 
       static_routes = [
         { destination_cidr_block = "10.0.0.0/8", attachment = "east-peer" },
@@ -161,6 +174,9 @@ module "transit_gateway_peer" {
       ]
     }
   }
+
+  enable_ram_share = true
+  ram_principals   = [data.aws_caller_identity.peer_account.account_id]
 
   tags = local.tags
 }
@@ -189,7 +205,7 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_availability_zones" "available_peer" {
-  provider = aws.peer
+  provider = aws.peer-region
   # Exclude local zones
   filter {
     name   = "opt-in-status"
@@ -245,13 +261,13 @@ module "vpc4" {
   version = "~> 5.0"
 
   providers = {
-    aws = aws.peer
+    aws = aws.peer-region
   }
 
   name = "${local.name}-vpc4"
   cidr = local.vpc4_cidr
 
-  azs             = local.azs
+  azs             = local.azs_peer
   private_subnets = [for k, v in local.azs_peer : cidrsubnet(local.vpc4_cidr, 4, k)]
 
   tags = local.tags

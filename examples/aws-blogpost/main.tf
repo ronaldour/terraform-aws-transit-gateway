@@ -32,7 +32,7 @@ data "aws_organizations_organization" "this" {}
 locals {
   name = "terraform-aws-modules"
 
-  organization_id = data.aws_organizations_organization.this.id
+  organization_arn = data.aws_organizations_organization.this.arn
 }
 
 ################################################################################
@@ -44,6 +44,11 @@ module "transit_gateway" {
 
   name        = local.name
   description = "Network Service Transit Gateway"
+
+  vpc_attachment_defaults = {
+    transit_gateway_default_route_table_association = false
+    transit_gateway_default_route_table_propagation = false
+  }
 
   vpc_attachments = {
     # Create Network Service Attachment in the same account
@@ -80,7 +85,7 @@ module "transit_gateway" {
   # Reference VPN attachment to be used in the route tables
   attachments = {
     vpn-attachment-4 = {
-      attachment_id = "tgw-attach-0d119a151e8aa6eb4"
+      attachment_id = aws_vpn_connection.attachment_4.transit_gateway_attachment_id
     },
   }
 
@@ -106,7 +111,7 @@ module "transit_gateway" {
   }
 
   enable_ram_share = true
-  ram_principals   = [local.organization_id]
+  ram_principals   = [local.organization_arn]
 }
 
 module "prod_tgw_attachment" {
@@ -308,4 +313,20 @@ module "dev_vpc" {
 
   azs             = local.azs
   private_subnets = [for k, v in local.azs : cidrsubnet(local.dev_vpc_cidr, 4, k)]
+}
+
+resource "aws_customer_gateway" "vpn" {
+  bgp_asn    = 65000
+  ip_address = "172.0.0.1"
+  type       = "ipsec.1"
+}
+
+resource "aws_vpn_connection" "attachment_4" {
+  customer_gateway_id = aws_customer_gateway.vpn.id
+  transit_gateway_id  = module.transit_gateway.id
+  type                = aws_customer_gateway.vpn.type
+
+  tags = {
+    Name = "${local.name}-vpn-attachment-4"
+  }
 }

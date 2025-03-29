@@ -42,7 +42,7 @@ output "ram_resource_share_id" {
 
 output "vpc_attachments" {
   description = "Map of VPC attachments created"
-  value       = aws_ec2_transit_gateway_vpc_attachment.this
+  value       = merge(aws_ec2_transit_gateway_vpc_attachment.this, aws_ec2_transit_gateway_vpc_attachment_accepter.this)
 }
 
 ################################################################################

@@ -109,17 +109,24 @@ variable "tgw_tags" {
 ################################################################################
 
 variable "vpc_attachment_defaults" {
-  description = "Map of VPC route table attachments to create"
-  type = any
+  description = "Default configurations for Transit Gateway VPC attachments. The first non-null value will be used for each configuration with each attachment having precedence over the defaults"
+  type = object({
+    dns_support                                     = optional(bool)
+    ipv6_support                                    = optional(bool)
+    appliance_mode_support                          = optional(bool)
+    security_group_referencing_support              = optional(bool)
+    transit_gateway_default_route_table_association = optional(bool)
+    transit_gateway_default_route_table_propagation = optional(bool)
+  })
   default = {}
 }
 
 variable "vpc_attachments" {
-  description = "Map of VPC route table attachments to create"
+  description = "Map of Transit Gateway VPC attachments"
   type = map(object({
-    subnet_ids                                      = optional(list(string))
-    vpc_id                                          = optional(string)
-    
+    subnet_ids = optional(list(string))
+    vpc_id     = optional(string)
+
     dns_support                                     = optional(bool)
     ipv6_support                                    = optional(bool)
     appliance_mode_support                          = optional(bool)
@@ -127,23 +134,14 @@ variable "vpc_attachments" {
     transit_gateway_default_route_table_association = optional(bool)
     transit_gateway_default_route_table_propagation = optional(bool)
 
-    create_attachment = optional(bool, true)
+    create_attachment        = optional(bool, true)
     accept_shared_attachment = optional(bool, false)
-    vpc_attachment_id = optional(string)
+    vpc_attachment_id        = optional(string)
 
-    create_vpc_routes = optional(bool)
-    # # Create routes using a list
-    # vpc_routes_route_table_ids = optional(list(string), [])
-    # vpc_routes_destination_cidr_blocks = ptional(list(string), [])
-    # vpc_routes_destination_ipv6_cidr_blocks = optional(list(string), [])
-    # # Create routes using a map
-    # vpc_routes_defaults = optional(object({
-    #   destination_cidr_blocks = optional(list(string), [])
-    #   destination_ipv6_cidr_blocks = optional(list(string), [])
-    # }))
+    create_vpc_routes = optional(bool, true)
     vpc_routes = optional(map(object({
-      route_table_ids = list(string)
-      destination_cidr_blocks = optional(list(string), [])
+      route_table_ids              = list(string)
+      destination_cidr_blocks      = optional(list(string), [])
       destination_ipv6_cidr_blocks = optional(list(string), [])
     })), {})
 
@@ -153,16 +151,16 @@ variable "vpc_attachments" {
 }
 
 variable "peering_attachments" {
-  description = "Map of Transit Gateway peering attachments to create"
+  description = "Map of Transit Gateway peering attachments"
   type = map(object({
     peer_account_id         = optional(string)
     peer_region             = optional(string)
     peer_transit_gateway_id = optional(string)
     tags                    = optional(map(string), {})
 
-    create_attachment = optional(bool, true)
+    create_attachment         = optional(bool, true)
     accept_peering_attachment = optional(bool, false)
-    peering_attachment_id = optional(string)
+    peering_attachment_id     = optional(string)
   }))
   default = {}
 }
@@ -181,22 +179,16 @@ variable "attachments" {
 
 variable "route_tables" {
   description = "Map of Transit Gateway route tables to create"
-  type = any
-  # type = map(object({
-  #   attachments = optional(map(object({
-  #     transit_gateway_attachment_id = optional(string)
-  #     create_propagation            = optional(bool)
-  #     create_association            = optional(bool)
-  #     replace_existing_association  = optional(bool)
-  #   })), {})
-  #   static_routes = optional(map(object({
-  #     destination_cidr_block        = optional(string)
-  #     blackhole                     = optional(bool)
-  #     transit_gateway_attachment_id = optional(string)
-  #   })), {})
-  #   tags = optional(map(string))
-  # }))
-  default = []
+  type = map(object({
+    associations = optional(list(string), [])
+    propagations = optional(list(string), [])
+    static_routes = optional(list(object({
+      destination_cidr_block = string
+      attachment             = optional(string)
+      blackhole              = optional(bool, false)
+    })), [])
+  }))
+  default = {}
 }
 
 ################################################################################
