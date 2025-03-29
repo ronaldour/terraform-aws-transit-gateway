@@ -11,13 +11,8 @@ locals {
 
   transit_gateway_id = try(aws_ec2_transit_gateway.this[0].id, var.tgw_id)
 
-  vpc_attachments = var.vpc_attachments
-  # vpc_attachments = { for k, v in var.vpc_attachments : k => {
-  #   for k1, v1 in v : k1 => v1 if v1 != null # Remove nulls from optional() so we can merge with defaults
-  # }}
-
   vpc_routes = flatten([
-    for k, v in local.vpc_attachments : [
+    for k, v in var.vpc_attachments : [
       for k1, v1 in v.vpc_routes : [
         for i, rtb_id in v1.route_table_ids : concat([
           for cidr in try(v1.destination_cidr_blocks, []) : {
@@ -85,7 +80,7 @@ resource "aws_ec2_tag" "this" {
 ################################################################################
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
-  for_each = { for k, v in local.vpc_attachments : k => v if var.create && try(v.create_attachment, true) && !try(v.accept_shared_attachment, false) }
+  for_each = { for k, v in var.vpc_attachments : k => v if var.create && try(v.create_attachment, true) && !try(v.accept_shared_attachment, false) }
 
   transit_gateway_id = local.transit_gateway_id
 
@@ -108,7 +103,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "this" {
-  for_each = { for k, v in local.vpc_attachments : k => v if var.create && v.accept_shared_attachment }
+  for_each = { for k, v in var.vpc_attachments : k => v if var.create && v.accept_shared_attachment }
 
   transit_gateway_attachment_id                   = each.value.vpc_attachment_id
   transit_gateway_default_route_table_association = try(coalesce(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association), null)
@@ -123,7 +118,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "this" {
 
 # Data source for existing attachments
 data "aws_ec2_transit_gateway_vpc_attachment" "this" {
-  for_each = { for k, v in local.vpc_attachments : k => v if var.create && !v.create_attachment && !v.accept_shared_attachment }
+  for_each = { for k, v in var.vpc_attachments : k => v if var.create && !v.create_attachment && !v.accept_shared_attachment }
 
   id = each.value.vpc_attachment_id
 }
