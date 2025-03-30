@@ -77,7 +77,7 @@ module "transit_gateway" {
     }
     # Accept shared peering attachment
     east = {
-      accept_shared_attachment = true
+      accept_peering_attachment = true
       transit_gateway_attachment_id = module.transit_gateway.peering_attachments["east"].id
     }
     # Reference existing peering attachment
