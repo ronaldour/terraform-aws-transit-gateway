@@ -10,6 +10,12 @@ output "arn" {
 output "id" {
   description = "EC2 Transit Gateway identifier"
   value       = try(aws_ec2_transit_gateway.this[0].id, null)
+  # Depends on RAM resource share (if enabled) to ensure the transit gateway is shared
+  # before it can be used by other accounts
+  depends_on = [
+    aws_ram_principal_association.this,
+    aws_ram_resource_association.this,
+  ]
 }
 
 output "owner_id" {

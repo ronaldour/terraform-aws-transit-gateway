@@ -108,6 +108,12 @@ variable "tgw_tags" {
 # Attachments
 ################################################################################
 
+variable "shared_attachment_wait_duration" {
+  description = "Time duration to wait after creating shared attachments to ensure they are accepted before creating routes"
+  type        = string
+  default     = "3m"
+}
+
 variable "vpc_attachment_defaults" {
   description = "Default configurations for Transit Gateway VPC attachments. The first non-null value will be used for each configuration with each attachment having precedence over the defaults"
   type = object({

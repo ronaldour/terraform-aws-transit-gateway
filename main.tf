@@ -123,6 +123,18 @@ data "aws_ec2_transit_gateway_vpc_attachment" "this" {
   id = each.value.vpc_attachment_id
 }
 
+# This sleep resource is used to provide a timed gap between a shared attachment creation and downstream dependencies.
+# When a VPC attachment is created using a shared Transit Gateway, the owner has to accept the attachment first,
+# this is a workaround to ensure the attachment is accepted before using it in TGW Route Tables and VPC Routes.
+resource "time_sleep" "vpc_attachments" {
+  create_duration = var.shared_attachment_wait_duration
+
+  triggers = {
+    # Create a hash of all attachment IDs to ensure we wait for all attachments
+    attachments = join(",", [for k, v in aws_ec2_transit_gateway_vpc_attachment.this : v.id])
+  }
+}
+
 resource "aws_route" "this" {
   for_each = { for k, v in local.vpc_routes : v.name => v if var.create && v.create }
 
@@ -130,6 +142,8 @@ resource "aws_route" "this" {
   destination_cidr_block      = try(each.value.destination_cidr_block, null)
   destination_ipv6_cidr_block = try(each.value.destination_ipv6_cidr_block, null)
   transit_gateway_id          = local.transit_gateway_id
+
+  depends_on = [time_sleep.vpc_attachments]
 }
 
 
@@ -171,6 +185,17 @@ data "aws_ec2_transit_gateway_peering_attachment" "this" {
   id = each.value.peering_attachment_id
 }
 
+# This sleep resource is used to provide a timed gap between a peering attachment creation and downstream dependencies.
+# Peering attachments need to be accepted first before Transit Gateway Routes and Associations can be created.
+resource "time_sleep" "peering_attachments" {
+  create_duration = var.shared_attachment_wait_duration
+
+  triggers = {
+    # Create a hash of all attachment IDs to ensure we wait for all attachments
+    attachments = join(",", concat([for k, v in aws_ec2_transit_gateway_peering_attachment.this : v.id]))
+  }
+}
+
 ################################################################################
 # Transit Gateway Route Tables
 ################################################################################
@@ -192,6 +217,8 @@ module "management_transit_gateway_route_table" {
     blackhole                     = try(route.blackhole, null)
     transit_gateway_attachment_id = try(local.attachments[route.attachment].id, route.transit_gateway_attachment_id, null)
   } }
+
+  depends_on = [time_sleep.vpc_attachments, time_sleep.peering_attachments]
 }
 
 ################################################################################
