@@ -19,32 +19,31 @@ Note that this example may create resources which cost money. Run `terraform des
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.78 |
-| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.7 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.7 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.78 |
-| <a name="provider_aws.peer-account"></a> [aws.peer-account](#provider\_aws.peer-account) | >= 5.78 |
-| <a name="provider_aws.peer-region"></a> [aws.peer-region](#provider\_aws.peer-region) | >= 5.78 |
-| <a name="provider_random"></a> [random](#provider\_random) | >= 3.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.0 |
+| <a name="provider_aws.peer-account"></a> [aws.peer-account](#provider\_aws.peer-account) | ~> 6.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.7 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_s3_bucket"></a> [s3\_bucket](#module\_s3\_bucket) | terraform-aws-modules/s3-bucket/aws | ~> 3.0 |
+| <a name="module_s3_bucket"></a> [s3\_bucket](#module\_s3\_bucket) | terraform-aws-modules/s3-bucket/aws | ~> 5.0 |
 | <a name="module_transit_gateway"></a> [transit\_gateway](#module\_transit\_gateway) | ../../ | n/a |
 | <a name="module_transit_gateway_attachment_peer_account"></a> [transit\_gateway\_attachment\_peer\_account](#module\_transit\_gateway\_attachment\_peer\_account) | ../../ | n/a |
 | <a name="module_transit_gateway_peer_region"></a> [transit\_gateway\_peer\_region](#module\_transit\_gateway\_peer\_region) | ../../ | n/a |
-| <a name="module_vpc1"></a> [vpc1](#module\_vpc1) | terraform-aws-modules/vpc/aws | ~> 5.0 |
-| <a name="module_vpc2"></a> [vpc2](#module\_vpc2) | terraform-aws-modules/vpc/aws | ~> 5.0 |
-| <a name="module_vpc3"></a> [vpc3](#module\_vpc3) | terraform-aws-modules/vpc/aws | ~> 5.0 |
-| <a name="module_vpc4"></a> [vpc4](#module\_vpc4) | terraform-aws-modules/vpc/aws | ~> 5.0 |
-| <a name="module_vpc5"></a> [vpc5](#module\_vpc5) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_vpc1"></a> [vpc1](#module\_vpc1) | terraform-aws-modules/vpc/aws | ~> 6.0 |
+| <a name="module_vpc2"></a> [vpc2](#module\_vpc2) | terraform-aws-modules/vpc/aws | ~> 6.0 |
+| <a name="module_vpc3"></a> [vpc3](#module\_vpc3) | terraform-aws-modules/vpc/aws | ~> 6.0 |
+| <a name="module_vpc4"></a> [vpc4](#module\_vpc4) | terraform-aws-modules/vpc/aws | ~> 6.0 |
+| <a name="module_vpc5"></a> [vpc5](#module\_vpc5) | terraform-aws-modules/vpc/aws | ~> 6.0 |
 
 ## Resources
 

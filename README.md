@@ -157,15 +157,15 @@ module "transit_gateway" {
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.78 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.7 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.78 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
 | <a name="provider_time"></a> [time](#provider\_time) | >= 0.9 |
 
 ## Modules
@@ -217,13 +217,14 @@ module "transit_gateway" {
 | <a name="input_ram_name"></a> [ram\_name](#input\_ram\_name) | The name of the resource share of TGW | `string` | `""` | no |
 | <a name="input_ram_principals"></a> [ram\_principals](#input\_ram\_principals) | A list of principals to share TGW with. Possible values are an AWS account ID, an AWS Organizations Organization ARN, or an AWS Organizations Organization Unit ARN | `set(string)` | `[]` | no |
 | <a name="input_ram_tags"></a> [ram\_tags](#input\_ram\_tags) | Additional tags for the RAM | `map(string)` | `{}` | no |
+| <a name="input_region"></a> [region](#input\_region) | Region where the resource(s) will be managed. Defaults to the region set in the provider configuration | `string` | `null` | no |
 | <a name="input_route_tables"></a> [route\_tables](#input\_route\_tables) | Map of Transit Gateway route tables to create | <pre>map(object({<br/>    associations = optional(list(string), [])<br/>    propagations = optional(list(string), [])<br/>    static_routes = optional(list(object({<br/>      destination_cidr_block = string<br/>      attachment             = optional(string)<br/>      blackhole              = optional(bool, false)<br/>    })), [])<br/>  }))</pre> | `{}` | no |
 | <a name="input_security_group_referencing_support"></a> [security\_group\_referencing\_support](#input\_security\_group\_referencing\_support) | Whether security group referencing is enabled | `bool` | `false` | no |
 | <a name="input_shared_attachment_wait_duration"></a> [shared\_attachment\_wait\_duration](#input\_shared\_attachment\_wait\_duration) | Time duration to wait after creating shared attachments to ensure they are accepted before creating routes | `string` | `"3m"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to add to all resources | `map(string)` | `{}` | no |
 | <a name="input_tgw_id"></a> [tgw\_id](#input\_tgw\_id) | Id of the Transit Gateway to use for attachments and route tables when create\_tgw = true | `string` | `""` | no |
 | <a name="input_tgw_tags"></a> [tgw\_tags](#input\_tgw\_tags) | Additional tags for the TGW | `map(string)` | `{}` | no |
-| <a name="input_timeouts"></a> [timeouts](#input\_timeouts) | Create, update, and delete timeout configurations for the transit gateway | `map(string)` | `{}` | no |
+| <a name="input_timeouts"></a> [timeouts](#input\_timeouts) | Create, update, and delete timeout configurations for the transit gateway | <pre>object({<br/>    create = optional(string)<br/>    update = optional(string)<br/>    delete = optional(string)<br/>  })</pre> | `null` | no |
 | <a name="input_transit_gateway_cidr_blocks"></a> [transit\_gateway\_cidr\_blocks](#input\_transit\_gateway\_cidr\_blocks) | One or more IPv4 or IPv6 CIDR blocks for the transit gateway. Must be a size /24 CIDR block or larger for IPv4, or a size /64 CIDR block or larger for IPv6 | `list(string)` | `[]` | no |
 | <a name="input_vpc_attachment_defaults"></a> [vpc\_attachment\_defaults](#input\_vpc\_attachment\_defaults) | Default configurations for Transit Gateway VPC attachments. The first non-null value will be used for each configuration with each attachment having precedence over the defaults | <pre>object({<br/>    dns_support                                     = optional(bool)<br/>    ipv6_support                                    = optional(bool)<br/>    appliance_mode_support                          = optional(bool)<br/>    security_group_referencing_support              = optional(bool)<br/>    transit_gateway_default_route_table_association = optional(bool)<br/>    transit_gateway_default_route_table_propagation = optional(bool)<br/>  })</pre> | `{}` | no |
 | <a name="input_vpc_attachments"></a> [vpc\_attachments](#input\_vpc\_attachments) | Map of Transit Gateway VPC attachments | <pre>map(object({<br/>    subnet_ids = optional(list(string))<br/>    vpc_id     = optional(string)<br/><br/>    dns_support                                     = optional(bool)<br/>    ipv6_support                                    = optional(bool)<br/>    appliance_mode_support                          = optional(bool)<br/>    security_group_referencing_support              = optional(bool)<br/>    transit_gateway_default_route_table_association = optional(bool)<br/>    transit_gateway_default_route_table_propagation = optional(bool)<br/><br/>    create_attachment        = optional(bool, true)<br/>    accept_shared_attachment = optional(bool, false)<br/>    vpc_attachment_id        = optional(string)<br/><br/>    create_vpc_routes = optional(bool, true)<br/>    vpc_routes = optional(map(object({<br/>      route_table_ids              = list(string)<br/>      destination_cidr_blocks      = optional(list(string), [])<br/>      destination_ipv6_cidr_blocks = optional(list(string), [])<br/>    })), {})<br/><br/>    tags = optional(map(string), {})<br/>  }))</pre> | `{}` | no |

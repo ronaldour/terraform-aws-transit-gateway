@@ -64,14 +64,14 @@ module "transit_gateway_route_table" {
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.78 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.7 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.78 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
 
 ## Modules
 
@@ -90,11 +90,12 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_associations"></a> [associations](#input\_associations) | Map of Transit Gateway Attachments ids to associate to the route table | <pre>map(object({<br>    transit_gateway_attachment_id = string<br>    replace_existing_association  = optional(bool)<br>  }))</pre> | `{}` | no |
+| <a name="input_associations"></a> [associations](#input\_associations) | Map of Transit Gateway Attachments ids to associate to the route table | <pre>map(object({<br/>    transit_gateway_attachment_id = string<br/>    replace_existing_association  = optional(bool)<br/>  }))</pre> | `{}` | no |
 | <a name="input_create"></a> [create](#input\_create) | Controls if resources should be created (it affects almost all resources) | `bool` | `true` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name to be used on all the resources as identifier | `string` | `""` | no |
 | <a name="input_propagations"></a> [propagations](#input\_propagations) | Map of Transit Gateway Attachments ids to propagate to the route table | `map(string)` | `{}` | no |
-| <a name="input_static_routes"></a> [static\_routes](#input\_static\_routes) | A map of Transit Gateway routes to create in the route table | <pre>map(object({<br>    destination_cidr_block        = string<br>    blackhole                     = optional(bool, false)<br>    transit_gateway_attachment_id = optional(string)<br>  }))</pre> | `{}` | no |
+| <a name="input_region"></a> [region](#input\_region) | AWS Region where resources will be created | `string` | `null` | no |
+| <a name="input_static_routes"></a> [static\_routes](#input\_static\_routes) | A map of Transit Gateway routes to create in the route table | <pre>map(object({<br/>    destination_cidr_block        = string<br/>    blackhole                     = optional(bool, false)<br/>    transit_gateway_attachment_id = optional(string)<br/>  }))</pre> | `{}` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to add to all resources | `map(string)` | `{}` | no |
 | <a name="input_transit_gateway_id"></a> [transit\_gateway\_id](#input\_transit\_gateway\_id) | The ID of the EC2 Transit Gateway for the route table | `string` | n/a | yes |
 

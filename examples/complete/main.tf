@@ -2,11 +2,6 @@ provider "aws" {
   region = local.region
 }
 
-provider "aws" {
-  alias  = "peer-region"
-  region = local.peer_region
-}
-
 data "aws_caller_identity" "current" {}
 
 locals {
@@ -18,6 +13,7 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
 
   tags = {
+    Name       = local.name
     Example    = local.name
     GithubRepo = "terraform-aws-transit-gateway"
   }
@@ -114,9 +110,7 @@ module "transit_gateway" {
 module "transit_gateway_peer_region" {
   source = "../../"
 
-  providers = {
-    aws = aws.peer-region
-  }
+  region = local.peer_region
 
   name        = local.name
   description = "Example Transit Gateway in a different region connecting multiple VPCs"
@@ -178,6 +172,12 @@ module "transit_gateway_peer_region" {
   enable_ram_share = true
   ram_principals   = [data.aws_caller_identity.peer_account.account_id]
 
+  timeouts = {
+    create = "10m"
+    update = "15m"
+    delete = "15m"
+  }
+
   tags = local.tags
 }
 
@@ -205,7 +205,7 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_availability_zones" "available_peer" {
-  provider = aws.peer-region
+  region = local.peer_region
   # Exclude local zones
   filter {
     name   = "opt-in-status"
@@ -215,7 +215,7 @@ data "aws_availability_zones" "available_peer" {
 
 module "vpc1" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
   name = "${local.name}-vpc1"
   cidr = local.vpc1_cidr
@@ -232,7 +232,7 @@ module "vpc1" {
 
 module "vpc2" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
   name = "${local.name}-vpc2"
   cidr = local.vpc2_cidr
@@ -245,7 +245,7 @@ module "vpc2" {
 
 module "vpc3" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
   name = "${local.name}-vpc3"
   cidr = local.vpc3_cidr
@@ -258,11 +258,9 @@ module "vpc3" {
 
 module "vpc4" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
-  providers = {
-    aws = aws.peer-region
-  }
+  region = local.peer_region
 
   name = "${local.name}-vpc4"
   cidr = local.vpc4_cidr
@@ -279,7 +277,7 @@ resource "random_pet" "this" {
 
 module "s3_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
-  version = "~> 3.0"
+  version = "~> 5.0"
 
   bucket        = "${local.name}-${random_pet.this.id}"
   policy        = data.aws_iam_policy_document.flow_log_s3.json

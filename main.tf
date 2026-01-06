@@ -11,6 +11,9 @@ locals {
 
   transit_gateway_id = try(aws_ec2_transit_gateway.this[0].id, var.tgw_id)
 
+  # Map of routes to vpc attachments to create in VPC route tables.
+  # Key uses the rtb-index instead rtb-id to avoid issues with rtb-id not know
+  # at plan time.
   vpc_routes = flatten([
     for k, v in var.vpc_attachments : [
       for k1, v1 in v.vpc_routes : [
@@ -47,6 +50,8 @@ locals {
 resource "aws_ec2_transit_gateway" "this" {
   count = var.create && var.create_tgw ? 1 : 0
 
+  region = var.region
+
   amazon_side_asn                    = var.amazon_side_asn
   auto_accept_shared_attachments     = var.auto_accept_shared_attachments ? "enable" : "disable"
   default_route_table_association    = var.default_route_table_association ? "enable" : "disable"
@@ -58,10 +63,13 @@ resource "aws_ec2_transit_gateway" "this" {
   transit_gateway_cidr_blocks        = var.transit_gateway_cidr_blocks
   vpn_ecmp_support                   = var.vpn_ecmp_support ? "enable" : "disable"
 
-  timeouts {
-    create = try(var.timeouts.create, null)
-    update = try(var.timeouts.update, null)
-    delete = try(var.timeouts.delete, null)
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
+    content {
+      create = timeouts.value.create
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
   }
 
   tags = local.tgw_tags
@@ -69,6 +77,8 @@ resource "aws_ec2_transit_gateway" "this" {
 
 resource "aws_ec2_tag" "this" {
   for_each = { for k, v in local.tgw_tags : k => v if var.create && var.create_tgw && var.default_route_table_association }
+
+  region = var.region
 
   resource_id = aws_ec2_transit_gateway.this[0].association_default_route_table_id
   key         = each.key
@@ -81,6 +91,8 @@ resource "aws_ec2_tag" "this" {
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   for_each = { for k, v in var.vpc_attachments : k => v if var.create && try(v.create_attachment, true) && !try(v.accept_shared_attachment, false) }
+
+  region = var.region
 
   transit_gateway_id = local.transit_gateway_id
 
@@ -105,6 +117,8 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "this" {
   for_each = { for k, v in var.vpc_attachments : k => v if var.create && v.accept_shared_attachment }
 
+  region = var.region
+
   transit_gateway_attachment_id                   = each.value.vpc_attachment_id
   transit_gateway_default_route_table_association = try(coalesce(each.value.transit_gateway_default_route_table_association, var.vpc_attachment_defaults.transit_gateway_default_route_table_association), null)
   transit_gateway_default_route_table_propagation = try(coalesce(each.value.transit_gateway_default_route_table_propagation, var.vpc_attachment_defaults.transit_gateway_default_route_table_propagation), null)
@@ -119,6 +133,8 @@ resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "this" {
 # Data source for existing attachments
 data "aws_ec2_transit_gateway_vpc_attachment" "this" {
   for_each = { for k, v in var.vpc_attachments : k => v if var.create && !v.create_attachment && !v.accept_shared_attachment }
+
+  region = var.region
 
   id = each.value.vpc_attachment_id
 }
@@ -138,6 +154,8 @@ resource "time_sleep" "vpc_attachments" {
 resource "aws_route" "this" {
   for_each = { for k, v in local.vpc_routes : v.name => v if var.create && v.create }
 
+  region = var.region
+
   route_table_id              = each.value.route_table_id
   destination_cidr_block      = try(each.value.destination_cidr_block, null)
   destination_ipv6_cidr_block = try(each.value.destination_ipv6_cidr_block, null)
@@ -154,6 +172,8 @@ resource "aws_route" "this" {
 resource "aws_ec2_transit_gateway_peering_attachment" "this" {
   for_each = { for k, v in var.peering_attachments : k => v if var.create && !v.accept_peering_attachment }
 
+  region = var.region
+
   peer_account_id         = each.value.peer_account_id
   peer_region             = each.value.peer_region
   peer_transit_gateway_id = each.value.peer_transit_gateway_id
@@ -169,6 +189,8 @@ resource "aws_ec2_transit_gateway_peering_attachment" "this" {
 resource "aws_ec2_transit_gateway_peering_attachment_accepter" "this" {
   for_each = { for k, v in var.peering_attachments : k => v if var.create && v.accept_peering_attachment }
 
+  region = var.region
+
   transit_gateway_attachment_id = each.value.peering_attachment_id
 
   tags = merge(
@@ -181,6 +203,8 @@ resource "aws_ec2_transit_gateway_peering_attachment_accepter" "this" {
 # Data source for existing peering attachments
 data "aws_ec2_transit_gateway_peering_attachment" "this" {
   for_each = { for k, v in var.peering_attachments : k => v if var.create && !v.create_attachment && !v.accept_peering_attachment }
+
+  region = var.region
 
   id = each.value.peering_attachment_id
 }
@@ -205,6 +229,8 @@ module "management_transit_gateway_route_table" {
 
   for_each = { for k, v in var.route_tables : k => v if var.create }
 
+  region = var.region
+
   name               = each.key
   transit_gateway_id = local.transit_gateway_id
 
@@ -226,11 +252,13 @@ module "management_transit_gateway_route_table" {
 ################################################################################
 
 locals {
-  ram_name = try(coalesce(var.ram_name, var.name), "")
+  ram_name = coalesce(var.ram_name, var.name)
 }
 
 resource "aws_ram_resource_share" "this" {
   count = var.create && var.enable_ram_share ? 1 : 0
+
+  region = var.region
 
   name                      = local.ram_name
   allow_external_principals = var.ram_allow_external_principals
@@ -245,12 +273,16 @@ resource "aws_ram_resource_share" "this" {
 resource "aws_ram_resource_association" "this" {
   count = var.create && var.enable_ram_share ? 1 : 0
 
+  region = var.region
+
   resource_arn       = aws_ec2_transit_gateway.this[0].arn
   resource_share_arn = aws_ram_resource_share.this[0].id
 }
 
 resource "aws_ram_principal_association" "this" {
   for_each = { for k, v in var.ram_principals : k => v if var.create && var.enable_ram_share }
+
+  region = var.region
 
   principal          = each.value
   resource_share_arn = aws_ram_resource_share.this[0].arn
@@ -262,6 +294,8 @@ resource "aws_ram_principal_association" "this" {
 
 resource "aws_flow_log" "this" {
   for_each = { for k, v in var.flow_logs : k => v if var.create && var.create_flow_log }
+
+  region = var.region
 
   deliver_cross_account_role = each.value.deliver_cross_account_role
 

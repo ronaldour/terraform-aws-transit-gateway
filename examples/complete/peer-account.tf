@@ -1,13 +1,14 @@
 provider "aws" {
-  alias  = "peer-account"
-  region = local.peer_region
+  alias   = "peer-account"
+  region  = local.peer_region
+  profile = "peer-account"
 }
 
 data "aws_caller_identity" "peer_account" { provider = aws.peer-account }
 
 module "vpc5" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 6.0"
 
   providers = {
     aws = aws.peer-account

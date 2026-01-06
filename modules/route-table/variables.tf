@@ -4,6 +4,12 @@ variable "create" {
   default     = true
 }
 
+variable "region" {
+  description = "AWS Region where resources will be created"
+  type        = string
+  default     = null
+}
+
 variable "name" {
   description = "Name to be used on all the resources as identifier"
   type        = string
