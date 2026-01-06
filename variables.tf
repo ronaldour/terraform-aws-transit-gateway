@@ -1,5 +1,11 @@
+variable "create" {
+  description = "Controls if resources should be created (it affects almost all resources)"
+  type        = bool
+  default     = true
+}
+
 variable "name" {
-  description = "Name to be used on all the resources as identifier"
+  description = "Name to be used on all the resources as the identifier"
   type        = string
   default     = ""
 }
@@ -21,9 +27,15 @@ variable "region" {
 ################################################################################
 
 variable "create_tgw" {
-  description = "Controls if TGW should be created (it affects almost all resources)"
+  description = "Controls if the Transit Gateway resource should be created"
   type        = bool
   default     = true
+}
+
+variable "tgw_id" {
+  description = "Id of the Transit Gateway to use for attachments and route tables when create_tgw = true"
+  type        = string
+  default     = ""
 }
 
 variable "description" {
@@ -33,51 +45,57 @@ variable "description" {
 }
 
 variable "amazon_side_asn" {
-  description = "The Autonomous System Number (ASN) for the Amazon side of the gateway. By default the TGW is created with the current default Amazon ASN."
+  description = "The Autonomous System Number (ASN) for the Amazon side of the gateway. By default the TGW is created with the current default Amazon ASN"
   type        = string
   default     = null
 }
 
-variable "enable_default_route_table_association" {
-  description = "Whether resource attachments are automatically associated with the default association route table"
-  type        = bool
-  default     = true
-}
-
-variable "enable_default_route_table_propagation" {
-  description = "Whether resource attachments automatically propagate routes to the default propagation route table"
-  type        = bool
-  default     = true
-}
-
-variable "enable_auto_accept_shared_attachments" {
+variable "auto_accept_shared_attachments" {
   description = "Whether resource attachment requests are automatically accepted"
   type        = bool
   default     = false
 }
 
-variable "enable_vpn_ecmp_support" {
-  description = "Whether VPN Equal Cost Multipath Protocol support is enabled"
+variable "default_route_table_association" {
+  description = "Whether resource attachments are automatically associated with the default association route table"
+  type        = bool
+  default     = false
+}
+
+variable "default_route_table_propagation" {
+  description = "Whether resource attachments automatically propagate routes to the default propagation route table"
+  type        = bool
+  default     = false
+}
+
+variable "dns_support" {
+  description = "Should be true to enable DNS support in the TGW"
   type        = bool
   default     = true
 }
 
-variable "enable_multicast_support" {
+variable "multicast_support" {
   description = "Whether multicast support is enabled"
   type        = bool
   default     = false
 }
 
-variable "enable_dns_support" {
-  description = "Should be true to enable DNS support in the TGW"
+variable "security_group_referencing_support" {
+  description = "Whether security group referencing is enabled"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "transit_gateway_cidr_blocks" {
   description = "One or more IPv4 or IPv6 CIDR blocks for the transit gateway. Must be a size /24 CIDR block or larger for IPv4, or a size /64 CIDR block or larger for IPv6"
   type        = list(string)
   default     = []
+}
+
+variable "vpn_ecmp_support" {
+  description = "Whether VPN Equal Cost Multipath Protocol support is enabled"
+  type        = bool
+  default     = true
 }
 
 variable "timeouts" {
@@ -96,64 +114,107 @@ variable "tgw_tags" {
   default     = {}
 }
 
-variable "tgw_default_route_table_tags" {
-  description = "Additional tags for the Default TGW route table"
-  type        = map(string)
-  default     = {}
+################################################################################
+# Attachments
+################################################################################
+
+variable "shared_attachment_wait_duration" {
+  description = "Time duration to wait after creating shared attachments to ensure they are accepted before creating routes"
+  type        = string
+  default     = "3m"
 }
 
-variable "enable_sg_referencing_support" {
-  description = "Indicates whether to enable security group referencing support"
-  type        = bool
-  default     = true
+variable "vpc_attachment_defaults" {
+  description = "Default configurations for Transit Gateway VPC attachments. The first non-null value will be used for each configuration with each attachment having precedence over the defaults"
+  type = object({
+    dns_support                                     = optional(bool)
+    ipv6_support                                    = optional(bool)
+    appliance_mode_support                          = optional(bool)
+    security_group_referencing_support              = optional(bool)
+    transit_gateway_default_route_table_association = optional(bool)
+    transit_gateway_default_route_table_propagation = optional(bool)
+  })
+  default = {}
 }
-
-################################################################################
-# VPC Attachment
-################################################################################
 
 variable "vpc_attachments" {
-  description = "Maps of maps of VPC details to attach to TGW. Type 'any' to disable type validation by Terraform."
-  type        = any
-  default     = {}
+  description = "Map of Transit Gateway VPC attachments"
+  type = map(object({
+    subnet_ids = optional(list(string))
+    vpc_id     = optional(string)
+
+    dns_support                                     = optional(bool)
+    ipv6_support                                    = optional(bool)
+    appliance_mode_support                          = optional(bool)
+    security_group_referencing_support              = optional(bool)
+    transit_gateway_default_route_table_association = optional(bool)
+    transit_gateway_default_route_table_propagation = optional(bool)
+
+    create_attachment        = optional(bool, true)
+    accept_shared_attachment = optional(bool, false)
+    vpc_attachment_id        = optional(string)
+
+    create_vpc_routes = optional(bool, true)
+    vpc_routes = optional(map(object({
+      route_table_ids              = list(string)
+      destination_cidr_blocks      = optional(list(string), [])
+      destination_ipv6_cidr_blocks = optional(list(string), [])
+    })), {})
+
+    tags = optional(map(string), {})
+  }))
+  default = {}
 }
 
-variable "tgw_vpc_attachment_tags" {
-  description = "Additional tags for VPC attachments"
-  type        = map(string)
-  default     = {}
+variable "peering_attachments" {
+  description = "Map of Transit Gateway peering attachments"
+  type = map(object({
+    peer_account_id         = optional(string)
+    peer_region             = optional(string)
+    peer_transit_gateway_id = optional(string)
+    tags                    = optional(map(string), {})
+
+    create_attachment         = optional(bool, true)
+    accept_peering_attachment = optional(bool, false)
+    peering_attachment_id     = optional(string)
+  }))
+  default = {}
+}
+
+variable "attachments" {
+  description = "Map of Transit Gateway attachments to reference in the module (all attachment types)"
+  type = map(object({
+    attachment_id = string
+  }))
+  default = {}
 }
 
 ################################################################################
-# Route Table / Routes
+# Transit Gateway Route Tables
 ################################################################################
 
-variable "create_tgw_routes" {
-  description = "Controls if TGW Route Table / Routes should be created"
-  type        = bool
-  default     = true
-}
-
-variable "transit_gateway_route_table_id" {
-  description = "Identifier of EC2 Transit Gateway Route Table to use with the Target Gateway when reusing it between multiple TGWs"
-  type        = string
-  default     = null
-}
-
-variable "tgw_route_table_tags" {
-  description = "Additional tags for the TGW route table"
-  type        = map(string)
-  default     = {}
+variable "route_tables" {
+  description = "Map of Transit Gateway route tables to create"
+  type = map(object({
+    associations = optional(list(string), [])
+    propagations = optional(list(string), [])
+    static_routes = optional(list(object({
+      destination_cidr_block = string
+      attachment             = optional(string)
+      blackhole              = optional(bool, false)
+    })), [])
+  }))
+  default = {}
 }
 
 ################################################################################
 # Resource Access Manager
 ################################################################################
 
-variable "share_tgw" {
+variable "enable_ram_share" {
   description = "Whether to share your transit gateway with other accounts"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "ram_name" {
@@ -163,25 +224,54 @@ variable "ram_name" {
 }
 
 variable "ram_allow_external_principals" {
-  description = "Indicates whether principals outside your organization can be associated with a resource share."
+  description = "Indicates whether principals outside your organization can be associated with a resource share"
   type        = bool
   default     = false
 }
 
 variable "ram_principals" {
   description = "A list of principals to share TGW with. Possible values are an AWS account ID, an AWS Organizations Organization ARN, or an AWS Organizations Organization Unit ARN"
-  type        = list(string)
+  type        = set(string)
   default     = []
-}
-
-variable "ram_resource_share_arn" {
-  description = "ARN of RAM resource share"
-  type        = string
-  default     = ""
 }
 
 variable "ram_tags" {
   description = "Additional tags for the RAM"
   type        = map(string)
   default     = {}
+}
+
+################################################################################
+# Flow Logs
+################################################################################
+
+variable "create_flow_log" {
+  description = "Whether to create flow log resource(s)"
+  type        = bool
+  default     = true
+}
+
+variable "flow_logs" {
+  description = "Flow Logs to create for Transit Gateway or attachments"
+  type = map(object({
+    deliver_cross_account_role = optional(string)
+    destination_options = optional(object({
+      file_format                = optional(string, "parquet")
+      hive_compatible_partitions = optional(bool, false)
+      per_hour_partition         = optional(bool, true)
+    }))
+    iam_role_arn             = optional(string)
+    log_destination          = optional(string)
+    log_destination_type     = optional(string)
+    log_format               = optional(string)
+    max_aggregation_interval = optional(number, 30)
+    traffic_type             = optional(string, "ALL")
+    tags                     = optional(map(string), {})
+
+    enable_transit_gateway = optional(bool, true)
+    # The following can be provided when `enable_transit_gateway` is `false`
+    vpc_attachment_key     = optional(string)
+    peering_attachment_key = optional(string)
+  }))
+  default = {}
 }
